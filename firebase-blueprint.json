@@ -1,0 +1,79 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Public profile of a registered NINE by EVOLUXE customer.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "format": "email", "maxLength": 120 },
+        "photoURL": { "type": "string", "maxLength": 500 },
+        "preferredRingSize": { "type": "string", "maxLength": 20 },
+        "preferredMetalTone": { "type": "string", "enum": ["9K Gold", "9K Rose Gold"] },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "createdAt"]
+    },
+    "WishlistItem": {
+      "title": "WishlistItem",
+      "description": "A saved jewellery piece in customer wishlist.",
+      "type": "object",
+      "properties": {
+        "productId": { "type": "string", "maxLength": 64 },
+        "addedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["productId", "addedAt"]
+    },
+    "CartItemEntity": {
+      "title": "CartItemEntity",
+      "description": "An item in the customer shopping bag.",
+      "type": "object",
+      "properties": {
+        "productId": { "type": "string", "maxLength": 64 },
+        "quantity": { "type": "number" },
+        "selectedSize": { "type": "string", "maxLength": 50 },
+        "personalisationText": { "type": "string", "maxLength": 16 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["productId", "quantity", "updatedAt"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "An order placed for 9-karat fine jewellery.",
+      "type": "object",
+      "properties": {
+        "orderCode": { "type": "string", "maxLength": 32 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "maxLength": 100 },
+        "customerPhone": { "type": "string", "maxLength": 20 },
+        "shippingAddress": { "type": "string", "maxLength": 300 },
+        "subtotal": { "type": "number" },
+        "items": { "type": "string", "maxLength": 3000 },
+        "paymentMethod": { "type": "string", "enum": ["prepaid", "cod"] },
+        "status": { "type": "string", "enum": ["confirmed", "preparing", "dispatched", "delivered"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["orderCode", "userId", "customerName", "customerPhone", "shippingAddress", "subtotal", "items", "paymentMethod", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Customer account document."
+    },
+    "/users/{userId}/wishlist/{wishlistId}": {
+      "schema": "WishlistItem",
+      "description": "Customer saved jewellery pieces."
+    },
+    "/users/{userId}/cart/{cartItemId}": {
+      "schema": "CartItemEntity",
+      "description": "Customer synchronized bag items."
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Customer order history."
+    }
+  }
+}

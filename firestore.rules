@@ -1,0 +1,89 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default-deny all unmatched paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Security primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Customer User Profile
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false;
+
+      allow create: if isOwner(userId) && isValidId(userId)
+        && incoming().uid == request.auth.uid
+        && incoming().email is string && incoming().email.size() <= 120
+        && incoming().createdAt is string;
+
+      allow update: if isOwner(userId) && isValidId(userId)
+        && incoming().uid == existing().uid
+        && incoming().email == existing().email;
+
+      // Customer Wishlist Subcollection
+      match /wishlist/{wishlistId} {
+        allow read: if isOwner(userId) && isValidId(userId);
+        
+        allow create, update: if isOwner(userId) && isValidId(userId) && isValidId(wishlistId)
+          && incoming().productId is string && incoming().productId.size() <= 64
+          && incoming().addedAt is string;
+
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(wishlistId);
+      }
+
+      // Customer Cart Subcollection
+      match /cart/{cartItemId} {
+        allow read: if isOwner(userId) && isValidId(userId);
+
+        allow create, update: if isOwner(userId) && isValidId(userId) && isValidId(cartItemId)
+          && incoming().productId is string && incoming().productId.size() <= 64
+          && incoming().quantity is number && incoming().quantity > 0 && incoming().quantity <= 99
+          && incoming().updatedAt is string;
+
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(cartItemId);
+      }
+    }
+
+    // Orders Collection
+    match /orders/{orderId} {
+      allow get: if isSignedIn() && isValidId(orderId) && resource.data.userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+
+      allow create: if isSignedIn() && isValidId(orderId)
+        && incoming().userId == request.auth.uid
+        && incoming().orderCode is string && incoming().orderCode.size() <= 32
+        && incoming().customerName is string && incoming().customerName.size() <= 100
+        && incoming().customerPhone is string && incoming().customerPhone.size() <= 20
+        && incoming().shippingAddress is string && incoming().shippingAddress.size() <= 300
+        && incoming().subtotal is number && incoming().subtotal >= 0
+        && incoming().items is string && incoming().items.size() <= 3000
+        && incoming().paymentMethod in ['prepaid', 'cod']
+        && incoming().status in ['confirmed', 'preparing', 'dispatched', 'delivered']
+        && incoming().createdAt is string;
+
+      allow update, delete: if false; // Orders are immutable post-creation
+    }
+  }
+}
